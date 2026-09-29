@@ -126,8 +126,15 @@ def reconstruct_path(parents, goal_state):
 
     Returns the list of (row, col) positions from start to goal, in order.
     """
-    # TODO
-    raise NotImplementedError
+    path = []
+    current = goal_state
+    
+    while current is not None:
+        position = current[0]
+        path.append(position)
+        current = parents.get(current)
+
+    return path[::-1]
 
 
 def a_star(start, goals, walls, treasures, grid_size):
@@ -146,7 +153,59 @@ def a_star(start, goals, walls, treasures, grid_size):
     #   - parents:  dict state -> previous state
     #   - explored: set of expanded states
     #   - goal test when a state is POPPED, not when it is pushed
-    raise NotImplementedError
+    # 초기 상태: (시작 위치, 빈 frozenset)
+    start_state = (start, frozenset())
+    
+    # frontier: (f, tie_breaker, g, state) 형태의 튜플을 담는 힙
+    # 동일한 f 값일 때 상태(state) 객체 간 비교 연산 에러를 막기 위해 tie_breaker 카운터를 씁니다.
+    frontier = []
+    tie_breaker = 0
+    
+    # 시작 노드의 f score 계산 (g=0 + h)
+    f_start = 0 + heuristic(start_state, goals)
+    heapq.heappush(frontier, (f_start, tie_breaker, 0, start_state))
+    
+    # 탐색 기록 관리용 자료구조
+    best_g = {start_state: 0}
+    parents = {start_state: None}
+    explored = set()
+    
+    num_explored = 0
+
+    while frontier:
+        # 가장 f 값이 작은 상태를 꺼냅니다.
+        f, _, g, current_state = heapq.heappop(frontier)
+        
+        # 이미 확장(Pop)된 상태라면 중복 처리를 위해 건너뜁니다.
+        if current_state in explored:
+            continue
+            
+        # 탐색(확장)된 유효 노드 카운트 추가 (목적지 노드도 포함)
+        num_explored += 1
+        explored.add(current_state)
+        
+        # 🎯 Goal test when a state is POPPED
+        if is_goal(current_state, goals, treasures):
+            path = reconstruct_path(parents, current_state)
+            return path, g, num_explored
+            
+        # 인접 노드(이동 가능한 후속 상태) 탐색
+        for next_state in get_successors(current_state, grid_size, walls, treasures):
+            # 격자 내 이동 비용은 항상 1입니다.
+            tentative_g = g + 1
+            
+            # 더 짧은 경로로 해당 상태에 도달할 수 있는 경우에만 업데이트합니다.
+            if next_state not in best_g or tentative_g < best_g[next_state]:
+                best_g[next_state] = tentative_g
+                parents[next_state] = current_state
+                
+                # f = g + h 계산 후 frontier에 삽입
+                f_next = tentative_g + heuristic(next_state, goals)
+                tie_breaker += 1
+                heapq.heappush(frontier, (f_next, tie_breaker, tentative_g, next_state))
+                
+    # 목적지에 도달하지 못하고 모든 경로 탐색이 끝난 경우
+    return [], float('inf'), num_explored
 
 
 

@@ -8,28 +8,20 @@ Name: Jaeyoon Lee
 import csv
 import heapq
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+
 START = "S"
 GOAL = "G"
 WALL = "X"
-TREASURE_TARGET = 5          # minimum total treasure value required
-MOVE_COST = 1                # cost of moving to an adjacent tile
+TREASURE_TARGET = 5  # minimum total treasure value required
+MOVE_COST = 1  # cost of moving to an adjacent tile
 MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonals)
 
 
-# ---------------------------------------------------------------------------
-# 1. Input parsing
-# ---------------------------------------------------------------------------
 def read_grid(filepath):
-    """Read the CSV file and return the grid as a list of rows (list of str).
-
-    Each cell should be stripped of surrounding whitespace.
-    Empty lines should be ignored.
-    """
-    # TODO: use csv.reader to read the file
-    raise NotImplementedError
+    grid = []
+    with open(filepath, newline='') as csvfile:
+        grid = csv.reader(csvfile)
+    return grid
 
 
 def parse_grid(grid):
@@ -41,8 +33,27 @@ def parse_grid(grid):
         walls     : set of (row, col) wall tiles
         treasures : dict mapping (row, col) -> treasure value (only values > 0)
     """
-    # TODO: loop over every (row, col) and classify the cell
-    raise NotImplementedError
+    start = None
+    goals = set()
+    walls = set()
+    treasures = {}
+
+    for r, row in enumerate(grid):
+        for c, cell in enumerate(row):
+            if cell == START:
+                start = (r, c)
+            elif cell == GOAL:
+                goals.add((r, c))
+            elif cell == WALL:
+                walls.add((r, c))
+            else:
+                try:
+                    val = int(cell)
+                    if val > 0:
+                        treasures[(r, c)] = val
+                except ValueError:
+                    pass
+    return start, goals, walls, treasures
 
 
 # ---------------------------------------------------------------------------
@@ -52,14 +63,17 @@ def parse_grid(grid):
 # ---------------------------------------------------------------------------
 def collected_value(collected, treasures):
     """Return the total value of the treasures in `collected`."""
-    # TODO
-    raise NotImplementedError
+    sum = 0
+    for pos in collected:
+        if pos in treasures:
+            sum += treasures[pos]
+    return sum
 
 
 def is_goal(state, goals, treasures):
     """True if the agent is on a goal tile AND has collected >= TREASURE_TARGET."""
-    # TODO
-    raise NotImplementedError
+    position, collected = state
+    return (position in goals) and (collected_value(collected, treasures) >= TREASURE_TARGET)
 
 
 def get_successors(state, grid_size, walls, treasures):
@@ -68,17 +82,33 @@ def get_successors(state, grid_size, walls, treasures):
     - Stay inside the grid and do not enter walls.
     - If the new tile is a treasure not yet collected, add it to `collected`.
     """
-    # TODO
-    raise NotImplementedError
+    position, collected = state
+    r,c = position
+    n_rows, n_cols = grid_size
+
+    successors = []
+
+    for dr, dc in MOVES:
+        next_r, next_c = r+dr, c+dc
+        next_pos = (next_r, next_c)
+
+        if 0 <= next_r < n_rows and 0 <= next_c < n_cols:
+            if next_pos not in walls:
+                if next_pos in treasures and next_pos not in collected:
+                    next_collected = collected | frozenset([next_pos])
+                else:
+                    next_collected = collected
+
+                successors.append((next_pos, next_collected))
+
+    return successors
 
 
 # ---------------------------------------------------------------------------
 # 3. Heuristic
 # ---------------------------------------------------------------------------
 def manhattan(a, b):
-    """Manhattan distance between two (row, col) positions."""
-    # TODO
-    raise NotImplementedError
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 def heuristic(state, goals):
@@ -86,8 +116,8 @@ def heuristic(state, goals):
 
     (Must be admissible and consistent -- see Question 3 in the PDF.)
     """
-    # TODO
-    raise NotImplementedError
+    position, collected = state
+    return min(manhattan(position, g) for g in goals)
 
 
 # ---------------------------------------------------------------------------
@@ -121,9 +151,8 @@ def a_star(start, goals, walls, treasures, grid_size):
     raise NotImplementedError
 
 
-# ---------------------------------------------------------------------------
-# Required entry point (do not change the name or signature)
-# ---------------------------------------------------------------------------
+
+# The pathfinding function must implement A* search to find the goal state
 def pathfinding(filepath):
     """Find the optimal path for the grid stored in `filepath` (CSV).
 
@@ -132,6 +161,12 @@ def pathfinding(filepath):
         optimal_path_cost   : cost of the optimal path
         num_states_explored : number of states explored during A* search
     """
+    # filepath is the path to a CSV file containing a grid 
+
+    # optimal_path is a list of coordinate of squares visited (in order)
+    # optimal_path_cost is the cost of the optimal path
+    # num_states_explored is the number of states explored during A* search
+
     grid = read_grid(filepath)
     start, goals, walls, treasures = parse_grid(grid)
     grid_size = (len(grid), len(grid[0]))

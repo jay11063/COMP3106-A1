@@ -20,7 +20,7 @@ MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonal
 def read_grid(filepath):
     grid = []
     with open(filepath, newline='') as csvfile:
-        grid = csv.reader(csvfile)
+        grid = list(csv.reader(csvfile))
     return grid
 
 
@@ -61,19 +61,16 @@ def parse_grid(grid):
 #    A state is (position, collected), where `collected` is a frozenset of
 #    treasure positions already picked up (so a treasure is never counted twice).
 # ---------------------------------------------------------------------------
-def collected_value(collected, treasures):
+def get_collected_value(collected, treasures):
     """Return the total value of the treasures in `collected`."""
-    sum = 0
-    for pos in collected:
-        if pos in treasures:
-            sum += treasures[pos]
-    return sum
+    return sum(treasures[pos] for pos in collected)
 
 
 def is_goal(state, goals, treasures):
     """True if the agent is on a goal tile AND has collected >= TREASURE_TARGET."""
     position, collected = state
-    return (position in goals) and (collected_value(collected, treasures) >= TREASURE_TARGET)
+    collected_value = get_collected_value(collected, treasures)
+    return (position in goals) and (collected_value >= TREASURE_TARGET)
 
 
 def get_successors(state, grid_size, walls, treasures):
@@ -92,14 +89,15 @@ def get_successors(state, grid_size, walls, treasures):
         next_r, next_c = r+dr, c+dc
         next_pos = (next_r, next_c)
 
-        if 0 <= next_r < n_rows and 0 <= next_c < n_cols:
-            if next_pos not in walls:
-                if next_pos in treasures and next_pos not in collected:
-                    next_collected = collected | frozenset([next_pos])
-                else:
-                    next_collected = collected
+        if not (0 <= next_r < n_rows and 0 <= next_c < n_cols) or (next_pos in walls):
+            continue
 
-                successors.append((next_pos, next_collected))
+        if next_pos in treasures and next_pos not in collected:
+            next_collected = collected | frozenset([next_pos])
+        else:
+            next_collected = collected
+
+        successors.append((next_pos, next_collected))
 
     return successors
 
@@ -161,11 +159,6 @@ def pathfinding(filepath):
         optimal_path_cost   : cost of the optimal path
         num_states_explored : number of states explored during A* search
     """
-    # filepath is the path to a CSV file containing a grid 
-
-    # optimal_path is a list of coordinate of squares visited (in order)
-    # optimal_path_cost is the cost of the optimal path
-    # num_states_explored is the number of states explored during A* search
 
     grid = read_grid(filepath)
     start, goals, walls, treasures = parse_grid(grid)

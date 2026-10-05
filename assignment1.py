@@ -125,13 +125,12 @@ def a_star(start, goals, walls, treasures, grid_size):
                        the goal state that is popped counts too)
     """
     start_state = (start, frozenset())
-
-    # frontier: (f, tie_breaker, g, state)
-    frontier = []
-    tie_breaker = 0
-
+    frontier = {}
     f_start = 0 + heuristic(start_state, goals)
-    heapq.heappush(frontier, (f_start, tie_breaker, 0, start_state))
+    frontier[start_state] = {
+        'g': 0,
+        'h': heuristic(start_state, goals)
+    }
     
     best_g = {start_state: 0}
     parents = {start_state: None}
@@ -140,27 +139,32 @@ def a_star(start, goals, walls, treasures, grid_size):
     num_explored = 0
 
     while frontier:
-        _, _, g, current_state = heapq.heappop(frontier)
+        # extract based on the combined value of cost (g(n)) and heuristic (h(n))
+        current_state = min(frontier.keys(), key=lambda k: frontier[k]['g'] + frontier[k]['h'])
         
+        node_data = frontier.pop(current_state)
+        g = node_data['g']
+
+        # if already explored this node
         if current_state in explored:
             continue
-            
+
         num_explored += 1
         explored.add(current_state)
-        
+
         if is_goal(current_state, goals, treasures):
             path = reconstruct_path(parents, current_state)
             return path, g, num_explored
     
         for next_state in get_successors(current_state, grid_size, walls, treasures):
-            tentative_g = g + 1
-            if ((next_state not in best_g) or (tentative_g < best_g[next_state])):
-                best_g[next_state] = tentative_g
+            new_g = g + 1
+            if ((next_state not in best_g) or (new_g < best_g[next_state])):
+                best_g[next_state] = new_g
                 parents[next_state] = current_state
-
-                f_next = tentative_g + heuristic(next_state, goals)
-                tie_breaker += 1
-                heapq.heappush(frontier, (f_next, tie_breaker, tentative_g, next_state))
+                frontier[next_state] = {
+                    'g': new_g,
+                    'h': heuristic(next_state, goals)
+                }
     # if exploring fails
     return [], float('inf'), num_explored
 

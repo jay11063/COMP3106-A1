@@ -20,7 +20,7 @@ MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonal
 def read_grid(filepath):
     grid = []
     with open(filepath, newline='') as csvfile:
-        grid = list(csv.reader(csvfile))
+        grid = [row for row in csv.reader(csvfile) if row]
     return grid
 
 

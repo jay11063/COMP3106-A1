@@ -6,13 +6,13 @@ Name: Jaeyoon Lee
 """
 
 import csv
-import heapq
 
 
 START = "S"
 GOAL = "G"
 WALL = "X"
 TREASURE_TARGET = 5  # minimum total treasure value required
+TARGET_MET = "TARGET_MET" # replaces 'collected' once the treasure target is reached
 MOVE_COST = 1  # cost of moving to an adjacent tile
 MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonals)
 
@@ -40,6 +40,7 @@ def parse_grid(grid):
 
     for r, row in enumerate(grid):
         for c, cell in enumerate(row):
+            cell = cell.strip() # remove whitespace
             if cell == START:
                 start = (r, c)
             elif cell == GOAL:
@@ -57,6 +58,8 @@ def parse_grid(grid):
 
 # Return the total value of the treasures in collected
 def get_collected_value(collected, treasures):
+    if collected == TARGET_MET:
+        return TREASURE_TARGET
     return sum(treasures[pos] for pos in collected)
 
 # True if the agent is on a goal tile AND has collected >= TREASURE_TARGET.
@@ -82,8 +85,12 @@ def get_successors(state, grid_size, walls, treasures):
             continue
 
         # If the new tile is a treasure not yet collected, add it to collected
-        if (next_pos in treasures) and (next_pos not in collected):
+        if collected == TARGET_MET:
+            next_collected = TARGET_MET
+        elif (next_pos in treasures) and (next_pos not in collected):
             next_collected = collected | frozenset([next_pos])
+            if get_collected_value(next_collected, treasures) >= TREASURE_TARGET:
+                next_collected = TARGET_MET
         else:
             next_collected = collected
 
@@ -98,6 +105,8 @@ def manhattan(a, b):
 
 def heuristic(state, goals):
     position, collected = state
+    if not goals:
+        return 0
     return min(manhattan(position, g) for g in goals)
 
 
@@ -157,6 +166,9 @@ def a_star(start, goals, walls, treasures, grid_size):
             return path, g, num_explored
     
         for next_state in get_successors(current_state, grid_size, walls, treasures):
+            if next_state in explored:
+                continue
+
             new_g = g + 1
             if ((next_state not in best_g) or (new_g < best_g[next_state])):
                 best_g[next_state] = new_g

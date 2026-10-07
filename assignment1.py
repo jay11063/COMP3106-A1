@@ -20,7 +20,7 @@ MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonal
 def read_grid(filepath):
     grid = []
     with open(filepath, newline='') as csvfile:
-        grid = [row for row in csv.reader(csvfile) if row]
+        grid = [row for row in csv.reader(csvfile) if row] # skip blank lines
     return grid
 
 
@@ -104,9 +104,7 @@ def manhattan(a, b):
 
 
 def heuristic(state, goals):
-    position, collected = state
-    if not goals:
-        return 0
+    position, _ = state
     return min(manhattan(position, g) for g in goals)
 
 
@@ -135,7 +133,6 @@ def a_star(start, goals, walls, treasures, grid_size):
     """
     start_state = (start, frozenset())
     frontier = {}
-    f_start = 0 + heuristic(start_state, goals)
     frontier[start_state] = {
         'g': 0,
         'h': heuristic(start_state, goals)
@@ -169,7 +166,7 @@ def a_star(start, goals, walls, treasures, grid_size):
             if next_state in explored:
                 continue
 
-            new_g = g + 1
+            new_g = g + MOVE_COST
             if ((next_state not in best_g) or (new_g < best_g[next_state])):
                 best_g[next_state] = new_g
                 parents[next_state] = current_state

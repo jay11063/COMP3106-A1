@@ -18,6 +18,9 @@ MOVES = ((-1, 0), (1, 0), (0, -1), (0, 1))  # up, down, left, right (no diagonal
 
 
 def read_grid(filepath):
+    """
+    Reads a CSV file from the given path and returns it as a list
+    """
     grid = []
     with open(filepath, newline='') as csvfile:
         grid = [row for row in csv.reader(csvfile) if row] # skip blank lines
@@ -56,20 +59,29 @@ def parse_grid(grid):
                     pass
     return start, goals, walls, treasures
 
-# Return the total value of the treasures in collected
+
 def get_collected_value(collected, treasures):
+    """
+    Return the total value of the treasures in collected
+    """
     if collected == TARGET_MET:
         return TREASURE_TARGET
     return sum(treasures[pos] for pos in collected)
 
-# True if the agent is on a goal tile AND has collected >= TREASURE_TARGET.
+
 def is_goal(state, goals, treasures):
+    """
+    True if the agent is on a goal tile AND has collected >= TREASURE_TARGET.
+    """
     position, collected = state
     collected_value = get_collected_value(collected, treasures)
     return (position in goals) and (collected_value >= TREASURE_TARGET)
 
-# Return a list of successor states reachable in one move
+
 def get_successors(state, grid_size, walls, treasures):
+    """
+    Return a list of successor states reachable in one move
+    """
     position, collected = state
     r,c = position
     n_rows, n_cols = grid_size
@@ -84,9 +96,9 @@ def get_successors(state, grid_size, walls, treasures):
         if not (0 <= next_r < n_rows and 0 <= next_c < n_cols) or (next_pos in walls):
             continue
 
-        # If the new tile is a treasure not yet collected, add it to collected
         if collected == TARGET_MET:
             next_collected = TARGET_MET
+        # If the new tile is a treasure not yet collected, add it to collected
         elif (next_pos in treasures) and (next_pos not in collected):
             next_collected = collected | frozenset([next_pos])
             if get_collected_value(next_collected, treasures) >= TREASURE_TARGET:
@@ -100,16 +112,24 @@ def get_successors(state, grid_size, walls, treasures):
 
 
 def manhattan(a, b):
+    """
+    Return a manhattan distance between a and b
+    """
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
 def heuristic(state, goals):
+    """
+    Return a heuristic value at the current state
+    """
     position, _ = state
     return min(manhattan(position, g) for g in goals)
 
 
-# Returns the list of (row, col) positions from start to goal, in order.
 def reconstruct_path(parents, goal_state):
+    """
+    Returns the list of (row, col) positions from start to goal, in order.
+    """
     path = []
     current = goal_state
     
